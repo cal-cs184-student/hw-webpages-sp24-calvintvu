@@ -1,7 +1,307 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Homework 1 index.html here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+  body {
+    padding: 100px;
+    width: 1000px;
+    margin: auto;
+    text-align: left;
+    font-weight: 300;
+    font-family: 'Open Sans', sans-serif;
+    color: #121212;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+</style>
+<title>CS 184/284A Rasterizer</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+<h1 align="middle">CS 184/284A: Computer Graphics and Imaging, Spring 2024</h1>
+<h1 align="middle">Homework 1: Rasterizer</h1>
+<h2 align="middle">Calvin Vu || Vincent Do</h2>
+
+<br><br>
+
+<div>
+
+<h2 align="middle">Overview</h2>
+<p>In this project, we created a program to rasterize images from SVG files and use PNG textures. The rasterization techniques increased in complexity throughout the project, going from rasterizing a simple triangle, to adding supersampling support, adding color interpolation, and then support for texture mapping. By building these rasterization tools, we begin to see our mathematics and theory applied into a tangible result and it was an overall great learning experience.</p>
+
+<h2 align="middle">Section I: Rasterization</h2>
+
+<h3 align="middle">Part 1: Rasterizing single-color triangles</h3>
+
+<p>
+Before we start rasterizing, we need to take our 3 vertices of the triangle and find the minimum bounds that encapsulates the whole triangle. In other words, we find the maximum and minimums point for both x,y on the coordinate plane. This is to ensure that the algorithm does not run worse than one that checks each sample within the bounding box of the triangle.
+<br><br>
+Next, we can use a double for loop to iterate through this grid of potential pixels that are inside the triangle. To check if a particular point is inside the triangle, which we want to put on the screen, we can use the ‘inside’ function that checks this for us (calculating the 3 line test). We pass in the 3 vertices of our triangle and the point (x, y) we want to check and then returns true if inside, false otherwise. So as we loop through each point in our grid, if the point is inside, we can fill the pixels and populate the sample buffer.
+</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/task1_test4.png" align="middle" width="400px"/>
+        <figcaption align="middle">basic/test4.svg: Basic colored triangles, no supersampling..</figcaption>
+      </td>
+      <td>
+        <img src="images/dragon.png" align="middle" width="400px"/>
+        <figcaption align="middle">Dragonlord Placidusax.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="images/cube.png" align="middle" width="400px"/>
+        <figcaption align="middle">Emerald Block.</figcaption>
+      </td>
+      <td>
+        <img src="images/flower.png" align="middle" width="400px"/>
+        <figcaption align="middle">Some stuff.</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<!-- <div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/image1.png" align="middle" width="400px"/>
+        <figcaption align="middle">Caption goes here.</figcaption>
+      </td>
+      <td>
+        <img src="images/image2.png" align="middle" width="400px"/>
+        <figcaption align="middle">Caption goes here.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="images/image3.png" align="middle" width="400px"/>
+        <figcaption align="middle">Caption goes here.</figcaption>
+      </td>
+      <td>
+        <img src="images/image4.png" align="middle" width="400px"/>
+        <figcaption align="middle">Caption goes here.</figcaption>
+      </td>
+    </tr>
+  </table>
+</div> -->
+
+
+<h3 align="middle">Part 2: Antialiasing By Supersampling</h3>
+
+<p>
+    Our supersampling will be similar to our non-supersampled algorithm but with an extra step at the end. First, we have to set the new sample rate. We also have to render a higher resolution image so we must increase the size of the sample buffer proportional to the new sample rate to hold more pixels essentially. Instead of incrementing our loops by 1 like in the non-supersampled, we want to increment by 1/sqrt(sample_rate) now to match our new indices to our sample rate. Then we check if the point is inside the triangle and populate the sample buffer, same as before. The new part of the algorithm is resolving to the frame buffer. Since we have more pixels in the sample buffer than the frame buffer, we want to average our sampled pixels down to fit the frame buffer. To achieve this, when iterating through the frame buffer, we also iterate through the subpixels in the sample buffer that belong to that particular pixel in the frame buffer, add up all the color values, and display the average of those colors to the screen. Averaging out the supersampled pixels allows us to antialias the triangles by removing the harsh jagged edges and make it smoother.
+</p>
+<p>
+    Supersampling is useful because it allows us to remove jagged edges from images, especially if we are running at a lower resolution.
+</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/test4-1.png" align="middle" width="400px"/>
+        <figcaption align="middle">1 sample per pixel.</figcaption>
+      </td>
+      <td>
+        <img src="images/test4-4.png" align="middle" width="400px"/>
+        <figcaption align="middle">4 samples per pixel.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="images/test4-9.png" align="middle" width="400px"/>
+        <figcaption align="middle">9 samples per pixel.</figcaption>
+      </td>
+      <td>
+        <img src="images/test4-16.png" align="middle" width="400px"/>
+        <figcaption align="middle">16 samples per pixel.</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<h3 align="middle">Part 3: Transforms</h3>
+
+<p>
+    Here, I am just having cubeman waving with both hands. This means I needed to have a rotation operation in the operation. Initially, I put the rotation at the end but then realized the order matters and thus had to do a translation, then rotation, then scaling, or else his hand would be warped.
+    As form implementing the transforms, it was just a matter of creating 3x3 matrices with entries that create the particular transforms. For rotations, we had to convert from degrees to radians.
+</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/worserobot.png" align="middle" width="400px"/>
+        <figcaption align="middle">Literally just some regular guy.</figcaption>
+      </td>
+      <td>
+        <img src="images/robot.png" align="middle" width="400px"/>
+        <figcaption align="middle">World's biggest gigachad.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+    </tr>
+  </table>
+</div>
+
+<h3 align="middle">Part 4: Barycentric Coordinates</h3>
+
+<p>
+    Barycentric coordinates also allow us to check if a point is inside a triangle if the coordinates are nonnegative. We can express barycentric coordinates in terms of the triangle’s vertices, which may have certain properties we deem useful, such as color, so if we represent a point inside the triangle in terms of these, we can interpolate them towards that particular point. Barycentric coordinates allow us to define points in relation to their position inside the triangle, making it useful to blend colors with other points inside the triangle.
+</p>
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/triangle.png" align="middle" width="400px"/>
+        <figcaption align="middle">Example of a smoothly blended color triangle.</figcaption>
+      </td>
+    <br>
+    <tr>
+    </tr>
+  </table>
+</div>
+
+<p>
+    Here, on this circle, the edges have color values, since they are more clearly defined at the outer portions of the circle. However, if we want to color the inside of the circle and we only have the color properties from these edges, we can use the weighted sum used to express the coordinates, notably the alpha, beta, gamma values to average out the colors added up from those points on the edge.
+</p>
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/colorwheel.png" align="middle" width="400px"/>
+        <figcaption align="middle">Color wheel.</figcaption>
+      </td>
+    <br>
+    <tr>
+    </tr>
+  </table>
+</div>
+<h3 align="middle">Part 5: Pixel Sampling for Texture Mapping</h3>
+
+<p>
+    Pixel sampling is when we want to color a pixel according to a textured surface that we want to rasterize, so since the pixel corresponds to a particular color on a texture map, we determine the color by sampling the texture map at this specific point.
+</p>
+<p>
+    We implemented this by first using barycentric coordinates and our given u, v points from each vertex to generate a u,v vector that would be used to sample the texture location. To get the (x,y) coordinates corresponding to the color on the texture we are sampling, we multiply the (x,y) in our u,v vector with the corresponding width and height of the texture map.
+</p>
+<p>
+    For nearest sampling, we just return the nearest point we calculated that corresponds to a point on the texture map.
+</p>
+<p>
+    For bilinear sampling, after getting the point we want to sample, we also calculate the 4 nearest points and then perform a linear interpolation on these points to average out the final color we sample.
+</p>
+<p>
+  On average, bilinear will perform better than nearest sampling since there is more color data to work with. When not supersampling, we see that nearest sampling has slightly more artifacting on the edges compared to bilinear. When supersampling, we see that they perform pretty similarly as there are more pixels to average out. There tends to be a bigger difference between nearest and bilinear when an image has a lot of artifacting and aliasing, with nearest performing worse on average.
+</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/level0-bilinear-1.png" align="middle" width="400px"/>
+        <figcaption align="middle">Zero-level, bilinear, 1 sample per pixel.</figcaption>
+      </td>
+      <td>
+        <img src="images/level0-bilinear-16.png" align="middle" width="400px"/>
+        <figcaption align="middle">Zero-level, bilinear, 16 samples per pixel.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="images/level0-near-1.png" align="middle" width="400px"/>
+        <figcaption align="middle">Zero-level, nearest, 1 sample per pixel.</figcaption>
+      </td>
+      <td>
+        <img src="images/level0-near-16.png" align="middle" width="400px"/>
+        <figcaption align="middle">Zero-level, nearest, 16 samples per pixel.</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<h3 align="middle">Part 6: Level Sampling with Mipmaps for Texture Mapping</h3>
+
+<p>
+    Level sampling is a process that takes an original image and then creates mipmaps of the image’s texture, meaning that it takes progressively lower resolution versions of the image by halving the dimensions each time. We then need to select which mipmap to use when constructing our image again to reduce the total computational cost. If a part of the image is farther, we use a lower mipmap level to reconstruct that part and use a sampling method that is less computationally demanding (such as nearest-neighbor sampling), but if a part of the image is closer, we use a high mipmap level to maintain that part of the image’s resolution and use a sampling method that is more computationally demanding (such as bilinear sampling).
+</p>
+<p>
+    You can now adjust your sampling technique by selecting pixel sampling, level sampling, or the number of samples per pixel. Describe the tradeoffs between speed, memory usage, and antialiasing power between the three various techniques.
+</p>
+<p>
+    <strong>Pixel sampling:</strong><br>
+    <strong>Speed:</strong> The speed of pixel sampling is the fastest of the three, as it only computes through each pixel without calculating mipmap levels (level sampling) or doing additional calculations per pixel based on sampling rate.<br>
+    <strong>Memory Usage:</strong> Pixel sampling also uses the least memory usage, as we are not calculating anything new and do not need to create any new information that needs to be stored.<br>
+    <strong>Antialiasing Power:</strong> Pixel sampling does very little to prevent aliasing, relying on each pixel’s smoothness and original texture.
+</p>
+<p>
+  <strong>Level Sampling:</strong><br>
+  <strong>Speed:</strong> The speed of level sampling is slower than pixel sampling, but faster than samples per pixel. This method only computes mipmaps for the image, which is faster than calculating a certain amount of samples for every pixel.<br>
+  <strong>Memory Usage:</strong> Level sampling uses more memory pixel sampling, but less than samples per pixel for the reasons above.<br>
+  <strong>Antialiasing Power:</strong> By choosing appropriate mipmap levels, level sampling can result in smoother images, significantly enhancing its antialiasing power.
+</p>
+<p>
+  <strong>Number of Samples per Pixel:</strong><br>
+  <strong>Speed:</strong> The speed is the slowest due to the largest amount of calculations needed.<br>
+  <strong>Memory Usage:</strong> The memory demand is the greatest due to the fact that we have to store all of the calculations per pixel.<br>
+  <strong>Antialiasing Power:</strong> This method has the potential to be the most effective in antialiasing. However, the method has diminishing marginal utility, as increasing the number of samples over time will result in lower quality improvements while massively increasing the time and memory demand.
+</p>
+
+<p>
+  Overall, mipmaps introduce both disadvantages. A notable disadvantage would be that mipmaps take up more memory as we need to store the leveled data. Also, increasing memory accesses may impact overall performance. However, mipmaps also allow us to choose which resolution texture map to sample at to more closely represent the actual point we're sampling. In addition we can use multiple levels of the mipmap to interpolate between two levels where our desired texture point is. 
+
+</p>
+<p>
+  In regards to increased visual fidelity, we see that it is not always perfect as heavy sampling may result in overblurring, so it is important we pick and choose which ways to sample to get a good looking image while maintaining reasonable performance.
+</p>
+
+<table style="width=100%">
+  <tr>
+    <td>
+      <img src="images/nearest_linear.png" align="middle" width="400px"/>
+      <figcaption align="middle">L_NEAREST and P_LINEAR.</figcaption>
+    </td>
+    <td>
+      <img src="images/nearest_nearest.png" align="middle" width="400px"/>
+      <figcaption align="middle">L_NEAREST and P_NEAREST.</figcaption>
+    </td>
+  </tr>
+  <br>
+  <tr>
+    <td>
+      <img src="images/zero_linear.png" align="middle" width="400px"/>
+      <figcaption align="middle">L_ZERO and P_LINEAR.</figcaption>
+    </td>
+    <td>
+      <img src="images/zero_nearest.png" align="middle" width="400px"/>
+      <figcaption align="middle">L_ZERO and P_NEAREST.</figcaption>
+    </td>
+  </tr>
+</table>
+
+
+
+
+
+
+<!-- <h2 align="middle">Section III: Art Competition</h2>
+<p>If you are not participating in the optional art competition, don't worry about this section!</p>
+
+<h3 align="middle">Part 7: Draw something interesting!</h3> -->
+
+</body>
 </html>
