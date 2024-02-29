@@ -45,7 +45,7 @@
 <p>
 Here, we are implementing one recursive step within the 1D Casteljau Subdivision algorithm. We have a list of vectors representing points on a plane, so for each iteration, we need to perform a linear interpolation on 2 points, which become one interpolated point. At the end of the algorithm, we will have a final point that lies on the bezier curve.
 <br><br>
-Lets break down de Casteljau's algorithm. First, we begin with a set of n points, that we define how our bezier curve looks. Then, we take 2 points from the set and perform a linear interpolation between them, giving us one point back, so in each iteration of the algorithm, we will have one less point from the set of points. We will repeat this until we get one points, which will ultimately lie on the evaluated bezier curve at parameter t. Parameter t is ranges from 0 to 1 where 0 corresponds to the first control point and 1 corresponds to the last point. With this parameter, we can construct a sequence of points that will represent our final bezier curve.
+Lets break down de Casteljau's algorithm. First, we begin with a set of n 'control' points, that we define how our bezier curve looks. Then, we take 2 points from the set and perform a linear interpolation between them, giving us one point back, so in each iteration of the algorithm, we will have one less point from the set of points. We will repeat this until we get one points, which will ultimately lie on the evaluated bezier curve at parameter t. Parameter t is ranges from 0 to 1 where 0 corresponds to the first control point and 1 corresponds to the last point. With this parameter, we can construct a sequence of points that will represent our final bezier curve.
 </p>
 
 <div align="middle">
