@@ -1,7 +1,362 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Homework 4 index.html here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+  body {
+    padding: 100px;
+    width: 1000px;
+    margin: auto;
+    text-align: left;
+    font-weight: 300;
+    font-family: 'Open Sans', sans-serif;
+    color: #121212;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+</style>
+<title>CS 184 Mesh Editor</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2024</h1>
+<h1 align="middle">Project 4: Cloth Simulator</h1>
+<h2 align="middle">Vincent Do and Calvin Vu</h2>
+
+<br><br>
+
+<div>
+
+<h2 align="middle">Overview</h2>
+<p>In this project, we have created program to realistically simulate cloth physics. This project includes representing the cloth as masses and springs that are stored in a 
+  data structure. It also includes the various mathematical techniques such as verlet integration when it comes to calculating the physics that motivate our simulations.
+</p>
+
+<h2 align="middle">Part I: Masses and Springs</h2>
+
+<p>
+  The first step in simulating our cloth physics is that we must model our cloth as a data structure we can manipulate. For this project, our representation will be a system of 
+  point masses and strings, meaning we can essentially create a grid-like data structures storing point masses. We also want to represent springs in a similar data structure to 
+  apply structual, shear, and bending constraints between point masse.
+</p>
+<br>
+<p>
+  So first, we are given a number of width and height points and this will determine the size of our grid and 
+  the spacing between points. We loop through these two values and determine the point of the point mass and 
+  plane it will vary over. We also want to check if this particular point mass is pinned using another given 
+  data structure. Next, we check if the orientation is horizontal or vertical which will affect how the point mass
+  is created. After we have everything, we add our point mass to our grid-like data structure. 
+</p>
+<br>
+<p>
+  For the springs, we also loop through the number of height and width points. We get the location of the point 
+  mass using our other data structure then check for structural, shearing, and bending constraints depending
+  on the location of point mases near it. We then add it to our springs data structure. 
+</p>
+
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="all3.png" align="middle" width="400px"/>
+        <figcaption align="middle">Structural, shearing, bending.</figcaption>
+      </td>
+      <td>
+        <img src="just_shearing.png" align="middle" width="400px"/>
+        <figcaption align="middle">Only shearing.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="no_shearing.png" align="middle" width="400px"/>
+        <figcaption align="middle">No shearing.</figcaption>
+      </td>
+      <td>
+        <img src="pinned2.png" align="middle" width="400px"/>
+        <figcaption align="middle">scene/pinned2.json.</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<h2 align="middle">Part II: Simulation via Numerical Integration</h2>
+<p>
+  Next, we will dive into calculating the physics behind our simulation. We have a data structure storing 
+  external accelerations; we want to calculate F = ma, and add the force to all our point masses. Next, for every 
+  spring whose constraint is enabled, we want to apply a spring correction force using the equation below:
+  <div align="center">
+    <table style="width=100%">
+        <tr>
+            <td align="middle">
+            <img src="Fs.png" width="480px" />
+            <figcaption align="middle">Hooke's Law.</figcaption>
+        </tr>
+    </table>
+  </div>
+</p>
+<p>
+  Next, for our procedural animation or simulation, we will apply verlet integration to compute each point 
+  mass's change in position. Verlet integrationis an explicit integrator that is fairly accurate and relatively 
+  easy to implement. Here is the equation below:
+  <div align="center">
+    <table style="width=100%">
+        <tr>
+            <td align="middle">
+            <img src="verlet.png" width="480px" />
+            <figcaption align="middle">Verlet Integration step.</figcaption>
+        </tr>
+    </table>
+  </div>
+  x_t:    &nbsp &nbsp &nbsp &nbsp current position. <br>
+  x_t-td: &nbsp position from last time step.<br>
+  d:      &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbspdamping factor.<br>
+  at:     &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbspcurrent total acceleration.<br>
+  dt:     &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsptimestep.<br>
+</p>
+<p>
+  To keep the springs from being deformed each time step, we will apply a constraint by correcting the two point 
+  masses' positions such that the spring's length is at most 10% greater than its rest_length at the end of any 
+  time step. We will loop through all springs and get its 2 point masses. If both point masses are pinned, we will 
+  skip. If only one point mass is pinned, we apply the whole correction force to the unpinned point mass. If both
+  point masses are unpinned, we apply half the force to one and the other half of the force to the other point mass 
+  in the opposite direction. 
+</p>
+<p>
+  When experimenting with the spring constant, density, and damping values, we noticed some changes in the 
+  behavior of the simulation. For a low damping factor, we saw that the simulation was more erratic, fast moving, and 
+  took longer to reach a steady state, if at all. For a high damping factor, we noticed that the simulation reaches
+  steady state faster, but moves slow, almost like its in slow motion. For a low density value, we saw the cloth 
+  looked like it was lighter as if it was paper, since it hung higher. For a high density value, the cloth looked 
+  like it was heavier as it was hanging lower in its steady state. For a low spring constant, we saw that the cloth 
+  had less folds in its steady state while a high spring constant had more folds. 
+
+</p>
+<div align="center">
+  <table style="width=100%">
+      <tr>
+          <td align="middle">
+          <img src="pinned4.png" width="480px" />
+          <figcaption align="middle">scene/pinned4.json: density = 15, ks = 5000, damping = 0.2</figcaption>
+      </tr>
+  </table>
+</div>
+
+<h2 align="middle">Part III: Handling Collisions With Other Objects</h2>
+<p>
+  Next, we will support cloth collision with other objects in the scene, most notabling collisions with spheres
+  and planes. For spheres, we compute where the point mass should have intersected the sphere by extending the path 
+  between its 'position' and the sphere's origin; we will call the intersection point the tangent line. If the 
+  point's norm is less than or equal to the radius of the sphere, we compute the correction vector by subtracting the 
+  last position of the point mass by the tangent point. We then update the position where it is the last position of the 
+  point plus the correction vector multiplied by a factor 1 minus the friction value. For planes, we can compute the 
+  dot product between the point mass's positions and the normal vector, and check if its pointing on the same side or 
+  opposite sides. Then like the sphere collision, we compute the correction vector using the tangent point and correct the 
+  point mass's position in the same manner: the last position plus the correction vector multiplied by the factor 1 minus
+  the friction.
+</p>
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="sphere_ks500.png" align="middle" width="400px"/>
+        <figcaption align="middle">scene/sphere.json, ks = 500.</figcaption>
+      </td>
+      <td>
+        <img src="sphere_ks5k.png" align="middle" width="400px"/>
+        <figcaption align="middle">scene/sphere.json, ks = 5k.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="sphere_ks50k.png" align="middle" width="400px"/>
+        <figcaption align="middle">scene/sphere.json, ks = 50k.</figcaption>
+      </td>
+      <td>
+        <img src="plane.png" align="middle" width="400px"/>
+        <figcaption align="middle">scene/plane.json</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+<p>
+  In the images above for the sphere collision, we can see differences when adjusting the spring constant 'ks'. We se that
+  wih a spring constant of 500, the cloth is looser and droops low when colliing with the sphere. With a ks of 50k, we see 
+  that the cloth is stiffer and the steady state is wider, since it has less folds when draped over the sphere. With a ks of 5k, the steady state lies between
+  the kis of 500 and 50k. 
+</p>
+<h2 align="middle">Part IV: Handling Self-collisions</h2>
+<p>
+  Next, we will implement self-collision but that can be computationally expensive, meaning we will employ an optimization 
+  technique called spatial hashing. First, we given a position vector, we will compute a float value, which will be our 
+  hash value. To do this is effectively partition the 3D space into 3D boxes with dimensions w * h * t where w = 3 * 
+  width / num_width_points, h = 3 * height / num_height_points and t = max(w, h). Next, we loop through all our point 
+  masses and use the hash function to populate a map. Next, to handle the self-collision on a point mass, we get its hash 
+  value to loop through the map to look for point masses that may collide. If that point mass is not the current point mass and 
+  they are within 2 * thickness_distance apart, then we compute a correction vector. The final correction vector to the 
+  point mass's position is the average of all of these pairwise correction vectors, scaled down by simulation_steps.
+</p>
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="4_start.png" align="middle" width="400px"/>
+        <figcaption align="middle">Start of self-collision simulation.</figcaption>
+      </td>
+      <td>
+        <img src="4_early.png" align="middle" width="400px"/>
+        <figcaption align="middle">Early step in self-collision simulation.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="4_almost.png" align="middle" width="400px"/>
+        <figcaption align="middle">Almost at steady state of self-collision simulation.</figcaption>
+      </td>
+      <td>
+        <img src="4_steady.png" align="middle" width="400px"/>
+        <figcaption align="middle">Steady state of self-collision simulation</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+<p>
+  <div align="middle">
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="4_ks5.png" align="middle" width="400px"/>
+          <figcaption align="middle">Self-collision, ks = 5.</figcaption>
+        </td>
+        <td>
+          <img src="4_ks50k.png" align="middle" width="400px"/>
+          <figcaption align="middle">Self-collision, ks = 50k.</figcaption>
+        </td>
+      </tr>
+      <br>
+      <tr>
+        <td>
+          <img src="4_density1.png" align="middle" width="400px"/>
+          <figcaption align="middle">Self-collision, density = 1.</figcaption>
+        </td>
+        <td>
+          <img src="4_density10k.png" align="middle" width="400px"/>
+          <figcaption align="middle">Self-collision, density = 10k</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+  From the four images above, we see the behavior of our self-collison changes as we vary the values of the spring constant
+  and the density. For a small spring constant, we see that the cloth has more folds and smaller folds while a higher 
+  spring constant has less but bigger folds. We see the opposite for density values. A low density values has less, but 
+  bigger folds while a high density has more, but smaller folds.
+</p>
+<h2 align="middle">Part V: Cloth Sim</h2>
+</body>
+<p>
+  <br><br>
+  A shader program is a program that combines the functions of multiple shaders to create the final appearance of an object. Different fragment shaders control different aspects of the object, such as the diffuse, specular, and ambient aspects of an object. By taking information from vertex shaders (which sets up the geometry and position of the object), fragment shaders work together to determine the final color of a pixel on the object to create complex appearances.
+</p>
+<p>
+  <br><br>
+  The Blinn-Phong shading model is a model that is able to replicate lighting effects on 3D objects by combining ambient, diffuse, and specular aspects. Ambient light is the amount of lighting on the object, determining how bright or dark the object is. Diffuse gives the object a little bit more texture, determining how much light is on each part of the object (depending on where the light is coming from). This creates inconsistencies in lighting on the object to give it more of a 3D look. The specular aspects determines the shininess of the object, creating the highlights you may see on an object when there is a light shown on it. All of these aspects come together to create the full Blinn-Phong model.
+</p>
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="ambient.png" align="middle" width="400px"/>
+        <figcaption align="middle">Ambient only.</figcaption>
+      </td>
+      <td>
+        <img src="diffuse.png" align="middle" width="400px"/>
+        <figcaption align="middle">Diffuse only.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="specular.png" align="middle" width="400px"/>
+        <figcaption align="middle">Specular only.</figcaption>
+      </td>
+      <td>
+        <img src="entiremodel.png" align="middle" width="400px"/>
+        <figcaption align="middle">Entire Blinn-Phong model.</figcaption>
+      </td>
+    </tr>
+  </table>
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="texture.png" align="middle" width="400px"/>
+        <figcaption align="middle">Custom Texture (Oski).</figcaption>
+      </td>
+      <td>
+        <img src="bumpcloth.png" align="middle" width="400px"/>
+        <figcaption align="middle">Bump (cloth).</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="bump.png" align="middle" width="400px"/>
+        <figcaption align="middle"> Bump (sphere).</figcaption>
+      </td>
+      <td>
+        <img src="displacement.png" align="middle" width="400px"/>
+        <figcaption align="middle">Displacement (sphere).</figcaption>
+      </td>
+    </tr>
+  </table>
+  <p>
+    <br><br>
+    Both bump and displacement approaches are similar when it comes to their fragment shaders, but their vertex shaders are a little different. In the displacement vertex shader, we introduce height information that modifies the geometry of the object depending on the height map texture (u_height_scaling). We also modify the vertex by displacing it along the normal direction.
+  </p>
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="bump16.png" align="middle" width="400px"/>
+        <figcaption align="middle">Bump (-o and -a = 16).</figcaption>
+      </td>
+      <td>
+        <img src="bump128.png" align="middle" width="400px"/>
+        <figcaption align="middle">Bump (-o and -a = 128).</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="dis16.png" align="middle" width="400px"/>
+        <figcaption align="middle"> Displacement (-o and -a = 16).</figcaption>
+      </td>
+      <td>
+        <img src="dis128.png" align="middle" width="400px"/>
+        <figcaption align="middle">Displacement (-o and -a = 128).</figcaption>
+      </td>
+    </tr>
+  </table>
+  <p>
+    <br><br>
+    Changing the coarseness parameters changes the vertical (-o) and horizontal (-a) resolution. Running the program with the parameters set to a higher number will result in a higher quality image. In the bump images, there is a very small difference, but you can see the difference more in the displacement images, where we have less jaggies in the higher resolution image compared to the lower resolution image.
+  </p>
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="mirrorcloth.png" align="middle" width="400px"/>
+        <figcaption align="middle">Mirror (cloth).</figcaption>
+      </td>
+      <td>
+        <img src="mirror.png" align="middle" width="400px"/>
+        <figcaption align="middle">Mirror (sphere).</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
 </html>
